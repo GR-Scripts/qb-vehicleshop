@@ -232,7 +232,7 @@ RegisterNetEvent('qb-vehicleshop:server:buyShowroomVehicle', function(vehicle)
             cid,
             vehicle,
             GetHashKey(vehicle),
-            '{}',
+            json.encode({ model = GetHashKey(vehicle)}),
             plate,
             'pillboxgarage',
             0
@@ -246,7 +246,7 @@ RegisterNetEvent('qb-vehicleshop:server:buyShowroomVehicle', function(vehicle)
             cid,
             vehicle,
             GetHashKey(vehicle),
-            '{}',
+            json.encode({ model = GetHashKey(vehicle)}),
             plate,
             'pillboxgarage',
             0
@@ -282,7 +282,7 @@ RegisterNetEvent('qb-vehicleshop:server:financeVehicle', function(downPayment, p
             cid,
             vehicle,
             GetHashKey(vehicle),
-            '{}',
+            json.encode({ model = GetHashKey(vehicle)}),
             plate,
             'pillboxgarage',
             0,
@@ -300,7 +300,7 @@ RegisterNetEvent('qb-vehicleshop:server:financeVehicle', function(downPayment, p
             cid,
             vehicle,
             GetHashKey(vehicle),
-            '{}',
+            json.encode({ model = GetHashKey(vehicle)}),
             plate,
             'pillboxgarage',
             0,
@@ -342,7 +342,7 @@ RegisterNetEvent('qb-vehicleshop:server:sellShowroomVehicle', function(data, pla
                 cid,
                 vehicle,
                 GetHashKey(vehicle),
-                '{}',
+                json.encode({ model = GetHashKey(vehicle)}),
                 plate,
                 'pillboxgarage',
                 0
@@ -359,7 +359,7 @@ RegisterNetEvent('qb-vehicleshop:server:sellShowroomVehicle', function(data, pla
                 cid,
                 vehicle,
                 GetHashKey(vehicle),
-                '{}',
+                json.encode({ model = GetHashKey(vehicle)}),
                 plate,
                 'pillboxgarage',
                 0
@@ -398,19 +398,29 @@ RegisterNetEvent('qb-vehicleshop:server:sellfinanceVehicle', function(downPaymen
         local vehiclePrice = QBCore.Shared.Vehicles[vehicle]['price']
         local timer = (Config.PaymentInterval * 60)
         local minDown = tonumber(round((Config.MinimumDown / 100) * vehiclePrice))
+        
+        -- Spawn het voertuig tijdelijk om de properties te krijgen
+        local coords = GetEntityCoords(GetPlayerPed(target.PlayerData.source))
+        local veh = CreateVehicle(GetHashKey(vehicle), coords.x, coords.y, coords.z, 0.0, true, false)
+        while not DoesEntityExist(veh) do Wait(10) end
+        local vehProps = QBCore.Functions.GetVehicleProperties(veh)
+        DeleteEntity(veh)
+        
         if downPayment > vehiclePrice then return TriggerClientEvent('QBCore:Notify', src, Lang:t('error.notworth'), 'error') end
         if downPayment < minDown then return TriggerClientEvent('QBCore:Notify', src, Lang:t('error.downtoosmall'), 'error') end
         if paymentAmount > Config.MaximumPayments then return TriggerClientEvent('QBCore:Notify', src, Lang:t('error.exceededmax'), 'error') end
+        
         local commission = round(vehiclePrice * Config.Commission)
         local plate = GeneratePlate()
         local balance, vehPaymentAmount = calculateFinance(vehiclePrice, downPayment, paymentAmount)
+        
         if cash >= downPayment then
             MySQL.insert('INSERT INTO player_vehicles (license, citizenid, vehicle, hash, mods, plate, garage, state, balance, paymentamount, paymentsleft, financetime) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', {
                 target.PlayerData.license,
                 cid,
                 vehicle,
                 GetHashKey(vehicle),
-                '{}',
+                json.encode(vehProps), -- Sla alle mods en properties op
                 plate,
                 'pillboxgarage',
                 0,
@@ -431,7 +441,7 @@ RegisterNetEvent('qb-vehicleshop:server:sellfinanceVehicle', function(downPaymen
                 cid,
                 vehicle,
                 GetHashKey(vehicle),
-                '{}',
+                json.encode(vehProps), -- Sla alle mods en properties op
                 plate,
                 'pillboxgarage',
                 0,
